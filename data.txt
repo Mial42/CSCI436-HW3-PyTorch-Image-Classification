@@ -1,0 +1,1 @@
+Please directly use the dataloader from Pytorch to load the training/test data samples for MINIST and CIFAR 10.
