@@ -3,7 +3,7 @@ Fun: CNN for MNIST classification
 """
 
 
-import numpy as np
+import numpy as np 
 import time
 import h5py
 import argparse
@@ -73,8 +73,15 @@ def _compute_accuracy(y_pred, y_batch):
 	## --------------------------------------------
 	## write the code of computing accuracy below
 	## --------------------------------------------
-	accy = 
-	return accy
+	# Compute the number of correct predictions
+	num_correct = (y_pred == y_batch).sum().item()
+
+# Compute the total number of predictions
+	num_total = y_batch.size(0)
+
+# Compute the accuracy as the fraction of correct predictions
+	accuracy = num_correct / num_total
+	return accuracy
 	
 
 
@@ -116,6 +123,7 @@ def main():
 	##-------------------------------------------------------
 	## please write the code about model initialization below
 	##-------------------------------------------------------
+	
 	model =  
 	## load model to gpu or cpu
 	model.to(device)
@@ -124,19 +132,24 @@ def main():
 	## Complete code about defining the LOSS FUNCTION
 	## --------------------------------------------------
 	optimizer = optim.Adam(model.parameters(),lr=learning_rate)  ## optimizer
-	loss_fun =    ## cross entropy loss
+	loss_fun = nn.CrossEntropyLoss()   ## cross entropy loss
 	
 	##--------------------------------------------
 	## load checkpoint below if you need
 	##--------------------------------------------
-	# if args.load_checkpoint:
-		## write load checkpoint code below
-
+	ckp_path = 'checkpoint/ckpoint.pt'
+	epoch_start = 0
+	if args.load_checkpoint:
+	# 	## write load checkpoint code below
+		torch.load(ckp_path)
+		model.load_state_dict(checkpoint['model_state_dict'])
+		optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+		epoch_start = checkpoint['epoch']
 	
 	##  model training
 	if args.mode == 'train':
 		model = model.train() ## model training
-		for epoch in range(num_epoches): #10-50
+		for epoch in range(epoch_start, num_epoches): #10-50
 			## learning rate
 			adjust_learning_rate(learning_rate, optimizer, epoch, decay)
 			
@@ -149,31 +162,37 @@ def main():
 				##---------------------------------------------------
 				## write loss function below, refer to tutorial slides
 				##----------------------------------------------------
-				loss = 
+				loss = loss_fun(output_y.data, y_labels)
 				
 
 				##----------------------------------------
 				## write back propagation below
 				##----------------------------------------
 				
-
+				optimizer.zero_grad() # Sets the gradients of all optimized to zero
+				loss.backward() #TODO may need to be loss_func.backward()
+				optimizer.step() # update params
 				##------------------------------------------------------
 				## get the predict result and then compute accuracy below
 				##------------------------------------------------------
 				# _, y_pred = torch.max(output_y.data, 1)
 				y_pred = torch.argmax(output_y.data, 1)
-				
+				accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
 				
 				##----------------------------------------------------------
 				## loss.item() or use tensorboard to monitor the loss blow
 				## if use loss.item(), you may use log txt files to save loss
 				##----------------------------------------------------------
+				with open("log.txt", "a") as f:
+    				# Write the loss and accuracy values to the file
+					f.write("Epoch {}: Loss = {:.4f}, Accuracy = {:.2f}%\n".format(epoch,loss.item(),accy*100))
+					f.close()
 				
-
 			## -------------------------------------------------------------------
 			## save checkpoint below (optional), every "epoch" save one checkpoint
 			## -------------------------------------------------------------------
-			
+			checkpoint = {'epoch':epoch, 'model_state_dict':model.state_dict(), 'optimizer_state_dict':optimizer.state_dict() }
+			torch.save(checkpoint, ckp_path)
 			
 				
 
