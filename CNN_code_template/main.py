@@ -156,17 +156,21 @@ def main():
 	##--------------------------------------------
 	## load checkpoint below if you need
 	##--------------------------------------------
-	ckp_path = 'checkpoint/ckpoint.pt'
+	ckp_path = 'ckpoint.pt'
 	epoch_start = 0
 	if args.load_checkpoint:
 	# 	## write load checkpoint code below
-		torch.load(ckp_path)
+		checkpoint = torch.load(ckp_path)
 		model.load_state_dict(checkpoint['model_state_dict'])
 		optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 		epoch_start = checkpoint['epoch']
 	
 	##  model training
 	if args.mode == 'train':
+		with open("log.txt", "w") as f: #reset the log
+			# Write the loss and accuracy values to the file
+			f.truncate(0)
+			f.close()
 		model = model.train() ## model training
 		for epoch in range(epoch_start, num_epoches): #10-50
 			## learning rate
@@ -181,8 +185,8 @@ def main():
 				##---------------------------------------------------
 				## write loss function below, refer to tutorial slides
 				##----------------------------------------------------
-				loss = loss_fun(output_y.data, y_labels)
-				
+				loss = loss_fun(output_y, y_labels) #TODO maybe output_y.data
+				#print(loss)
 
 				##----------------------------------------
 				## write back propagation below
@@ -219,15 +223,23 @@ def main():
 	##    model testing code below
 	##------------------------------------
 	model.eval()
+	with open("predictions.txt", "w") as f: #reset the predictions
+		# Write the loss and accuracy values to the file
+		f.truncate(0)
+		f.close()
 	with torch.no_grad():
+		total_accuracy = 0
+		num_batches = 0
 		for batch_id, (x_batch,y_labels) in enumerate(test_loader):
+			num_batches = num_batches + 1
 			x_batch, y_labels = Variable(x_batch).to(device), Variable(y_labels).to(device)
 			##---------------------------------------
 			## write the predict result below
 			##---------------------------------------
 			output_y = model(x_batch)
 			y_pred = torch.argmax(output_y.data, 1)
-			
+			accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
+			total_accuracy = total_accuracy + accy
 			y_pred = y_pred.numpy()
 			y_labels = y_labels.numpy()
 			with open('predictions.txt', 'a') as file:
@@ -237,9 +249,14 @@ def main():
 			## complete code for computing the accuracy below
 			##---------------------------------------------------
 			
-				accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
-				file.write("Accuracy for batch " + str(batch_id) + ": " + accy*100)
+				
+				file.write("Accuracy for batch " + str(batch_id) + ": " + str(accy*100))
 				file.close()
+		final_eval = "Total Accuracy: " + str(total_accuracy * 100 / num_batches)
+		with open('predictions.txt', 'a') as file:
+			file.write('\n' + final_eval)
+			file.close()
+		print(final_eval)
 
 	
 		
