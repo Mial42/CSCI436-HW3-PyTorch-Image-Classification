@@ -124,7 +124,7 @@ def main():
 	## please write the code about model initialization below
 	##-------------------------------------------------------
 	
-	model =  
+	model =  CNNModel()
 	## load model to gpu or cpu
 	model.to(device)
 	
@@ -206,13 +206,22 @@ def main():
 			##---------------------------------------
 			## write the predict result below
 			##---------------------------------------
+			output_y = model(x_batch)
+			y_pred = torch.argmax(output_y.data, 1)
 			
-			
-
+			y_pred = y_pred.numpy()
+			y_labels = y_labels.numpy()
+			with open('predictions.txt', 'a') as file:
+				for i in range(len(y_pred)):
+					file.write(str(y_pred[i]) + '\t' + str(y_labels[i]) + '\n')
 			##--------------------------------------------------
 			## complete code for computing the accuracy below
 			##---------------------------------------------------
 			
+				accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
+				file.write("Accuracy for batch " + str(batch_id) + ": " + accy*100)
+				file.close()
+
 	
 		
 
