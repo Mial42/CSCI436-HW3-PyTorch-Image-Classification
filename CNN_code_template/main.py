@@ -103,12 +103,31 @@ def adjust_learning_rate(learning_rate, optimizer, epoch, decay):
 
 def main():
 
-	use_cuda = torch.cuda.is_available() ## if have gpu or cpu 
-	device = torch.device("cuda" if use_cuda else "cpu")
-	torch.cuda.set_device(device=0) ## choose gpu number 0
-	print("device: ", device)
-	if use_cuda:
-		torch.cuda.manual_seed(72)
+	# use_cuda = torch.cuda.is_available() ## if have gpu or cpu 
+	# device = torch.device("cuda" if use_cuda else "cpu")
+	# torch.cuda.set_device(device=0) ## choose gpu number 0
+	# print("device: ", device)
+	# if use_cuda:
+	# 	torch.cuda.manual_seed(72)
+	if torch.cuda.is_available():
+		device_count = torch.cuda.device_count()
+		for i in range(device_count):
+			device = torch.device(f'cuda:{i}')
+			try:
+				torch.cuda.set_device(device)
+				print(f"Using GPU device {i}")
+				torch.cuda.manual_seed(72)
+				break
+			except RuntimeError:
+				# If the GPU device is already being used, try the next one
+				continue
+	else:
+		device = torch.device("cpu")
+		print("Using CPU")
+
+	print("Device:", device)
+
+
 
 	## initialize hyper-parameters
 	num_epoches = args.num_epoches
