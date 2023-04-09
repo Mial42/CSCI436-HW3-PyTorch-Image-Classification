@@ -10,7 +10,7 @@ import torch
 class CNNModel(nn.Module):
 	"""docstring for ClassName"""
 	
-	def __init__(self, dropout=0.5, input_size=28,fc_hidden_1=32,fc_hidden_2=64,fc_hidden_3=64, k_size=4,stride=1):
+	def __init__(self, dropout=0.6, input_size=28,fc_hidden_1=32,fc_hidden_2=64,fc_hidden_3=64, k_size=4,stride=1):
 		super(CNNModel, self).__init__()
 		##-----------------------------------------------------------
 		## define the model architecture here
@@ -50,7 +50,7 @@ class CNNModel(nn.Module):
 		self.fc = nn.Linear(in_size, fc_hidden_1)
 		self.bn1 = nn.BatchNorm1d(fc_hidden_1) # BatchNorm1d layer
 		self.fc2 = nn.Linear(fc_hidden_1,out_size)
-		
+		self.bn2 = nn.BatchNorm1d(out_size)
 
 	'''feed features to the model'''
 	def forward(self, x):  #default

@@ -110,6 +110,7 @@ def main():
 	# if use_cuda:
 	# 	torch.cuda.manual_seed(72)
 	if torch.cuda.is_available():
+		print("GPU is available")
 		device_count = torch.cuda.device_count()
 		for i in range(device_count):
 			device = torch.device(f'cuda:{i}')
@@ -143,7 +144,7 @@ def main():
 	## please write the code about model initialization below
 	##-------------------------------------------------------
 	
-	model =  CNNModel()
+	model =  CNNModel(dropout=args.dropout)
 	## load model to gpu or cpu
 	model.to(device)
 	
