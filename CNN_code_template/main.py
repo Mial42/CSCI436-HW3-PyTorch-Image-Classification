@@ -15,7 +15,7 @@ import torch.optim as optim
 # from util import _create_batch
 import json
 import torchvision
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from model import CNNModel
@@ -164,9 +164,10 @@ def main():
 		model.load_state_dict(checkpoint['model_state_dict'])
 		optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 		epoch_start = checkpoint['epoch']
-	
+	writer = SummaryWriter(log_dir='tensorboard_logs') #visualize loss over time
 	##  model training
 	if args.mode == 'train':
+		
 		with open("log.txt", "w") as f: #reset the log
 			# Write the loss and accuracy values to the file
 			f.truncate(0)
@@ -206,6 +207,7 @@ def main():
 				## loss.item() or use tensorboard to monitor the loss blow
 				## if use loss.item(), you may use log txt files to save loss
 				##----------------------------------------------------------
+				writer.add_scalar('training loss', loss.item(), epoch)
 				with open("log.txt", "a") as f:
     				# Write the loss and accuracy values to the file
 					f.write("Epoch {}: Loss = {:.4f}, Accuracy = {:.2f}%\n".format(epoch,loss.item(),accy*100))
@@ -257,6 +259,7 @@ def main():
 			file.write('\n' + final_eval)
 			file.close()
 		print(final_eval)
+	writer.close() #close tensorboard
 
 	
 		

@@ -10,7 +10,7 @@ import torch
 class CNNModel(nn.Module):
 	"""docstring for ClassName"""
 	
-	def __init__(self, dropout=0.5, input_size=28,fc_hidden_1=32,fc_hidden_2=64,k_size=4,stride=1):
+	def __init__(self, dropout=0.5, input_size=28,fc_hidden_1=32,fc_hidden_2=64,fc_hidden_3=64, k_size=4,stride=1):
 		super(CNNModel, self).__init__()
 		##-----------------------------------------------------------
 		## define the model architecture here
@@ -20,9 +20,18 @@ class CNNModel(nn.Module):
 		## define CNN layers below
 		self.conv = nn.Sequential( 	
 									nn.Conv2d(1, fc_hidden_1,kernel_size=k_size,stride=stride,padding=1), #Only 1 inpjut channel
+									nn.BatchNorm2d(fc_hidden_1), # BatchNorm2d layer
 									nn.ReLU(),# activation fun,
 									nn.Dropout(dropout),# dropout,
+
 									nn.Conv2d(fc_hidden_1,fc_hidden_2,kernel_size=k_size,stride=stride,padding=1),
+									nn.BatchNorm2d(fc_hidden_2), # BatchNorm2d layer
+									nn.ReLU(),# activation fun,
+									nn.Dropout(dropout),# dropout,
+									 # BatchNorm2d layer
+
+									nn.Conv2d(fc_hidden_2,fc_hidden_3,kernel_size=k_size,stride=stride,padding=1),
+									nn.BatchNorm2d(fc_hidden_3), # BatchNorm2d layer
 									nn.ReLU(),# activation fun,
 									nn.Dropout(dropout),# dropout,
 									## continue like above,
@@ -36,9 +45,11 @@ class CNNModel(nn.Module):
 		## write code to define fully connected layer below
 		##------------------------------------------------
 		
-		in_size = fc_hidden_2 * 13 * 13 #TODO - not obvious that this is write
+		in_size = fc_hidden_3 * 12 * 12 #Not 100% sure this is correct
 		out_size = 10 #Because we're predicting 10 classes
-		self.fc = nn.Linear(in_size, out_size)
+		self.fc = nn.Linear(in_size, fc_hidden_1)
+		self.bn1 = nn.BatchNorm1d(fc_hidden_1) # BatchNorm1d layer
+		self.fc2 = nn.Linear(fc_hidden_1,out_size)
 		
 
 	'''feed features to the model'''
