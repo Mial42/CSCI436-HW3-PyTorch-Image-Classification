@@ -3,7 +3,7 @@ Fun: CNN for MNIST classification
 """
 
 
-import numpy as np
+import numpy as np 
 import time
 import h5py
 import argparse
@@ -15,7 +15,7 @@ import torch.optim as optim
 # from util import _create_batch
 import json
 import torchvision
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from model import CNNModel
@@ -73,8 +73,15 @@ def _compute_accuracy(y_pred, y_batch):
 	## --------------------------------------------
 	## write the code of computing accuracy below
 	## --------------------------------------------
-	accy = 
-	return accy
+	# Compute the number of correct predictions
+	num_correct = (y_pred == y_batch).sum().item()
+
+# Compute the total number of predictions
+	num_total = y_batch.size(0)
+
+# Compute the accuracy as the fraction of correct predictions
+	accuracy = num_correct / num_total
+	return accuracy
 	
 
 
@@ -96,12 +103,32 @@ def adjust_learning_rate(learning_rate, optimizer, epoch, decay):
 
 def main():
 
-	use_cuda = torch.cuda.is_available() ## if have gpu or cpu 
-	device = torch.device("cuda" if use_cuda else "cpu")
-	torch.cuda.set_device(device=0) ## choose gpu number 0
-	print("device: ", device)
-	if use_cuda:
-		torch.cuda.manual_seed(72)
+	# use_cuda = torch.cuda.is_available() ## if have gpu or cpu 
+	# device = torch.device("cuda" if use_cuda else "cpu")
+	# torch.cuda.set_device(device=0) ## choose gpu number 0
+	# print("device: ", device)
+	# if use_cuda:
+	# 	torch.cuda.manual_seed(72)
+	if torch.cuda.is_available():
+		print("GPU is available")
+		device_count = torch.cuda.device_count()
+		for i in range(device_count):
+			device = torch.device(f'cuda:{i}')
+			try:
+				torch.cuda.set_device(device)
+				print(f"Using GPU device {i}")
+				torch.cuda.manual_seed(72)
+				break
+			except RuntimeError:
+				# If the GPU device is already being used, try the next one
+				continue
+	else:
+		device = torch.device("cpu")
+		print("Using CPU")
+
+	print("Device:", device)
+
+
 
 	## initialize hyper-parameters
 	num_epoches = args.num_epoches
@@ -116,7 +143,8 @@ def main():
 	##-------------------------------------------------------
 	## please write the code about model initialization below
 	##-------------------------------------------------------
-	model =  
+	
+	model =  CNNModel(dropout=args.dropout)
 	## load model to gpu or cpu
 	model.to(device)
 	
@@ -124,19 +152,29 @@ def main():
 	## Complete code about defining the LOSS FUNCTION
 	## --------------------------------------------------
 	optimizer = optim.Adam(model.parameters(),lr=learning_rate)  ## optimizer
-	loss_fun =    ## cross entropy loss
+	loss_fun = nn.CrossEntropyLoss()   ## cross entropy loss
 	
 	##--------------------------------------------
 	## load checkpoint below if you need
 	##--------------------------------------------
-	# if args.load_checkpoint:
-		## write load checkpoint code below
-
-	
+	ckp_path = 'ckpoint.pt'
+	epoch_start = 0
+	if args.load_checkpoint:
+	# 	## write load checkpoint code below
+		checkpoint = torch.load(ckp_path)
+		model.load_state_dict(checkpoint['model_state_dict'])
+		optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+		epoch_start = checkpoint['epoch']
+	writer = SummaryWriter(log_dir='tensorboard_logs') #visualize loss over time
 	##  model training
 	if args.mode == 'train':
+		
+		with open("log.txt", "w") as f: #reset the log
+			# Write the loss and accuracy values to the file
+			f.truncate(0)
+			f.close()
 		model = model.train() ## model training
-		for epoch in range(num_epoches): #10-50
+		for epoch in range(epoch_start, num_epoches): #10-50
 			## learning rate
 			adjust_learning_rate(learning_rate, optimizer, epoch, decay)
 			
@@ -149,31 +187,38 @@ def main():
 				##---------------------------------------------------
 				## write loss function below, refer to tutorial slides
 				##----------------------------------------------------
-				loss = 
-				
+				loss = loss_fun(output_y, y_labels) #TODO maybe output_y.data
+				#print(loss)
 
 				##----------------------------------------
 				## write back propagation below
 				##----------------------------------------
 				
-
+				optimizer.zero_grad() # Sets the gradients of all optimized to zero
+				loss.backward() #TODO may need to be loss_func.backward()
+				optimizer.step() # update params
 				##------------------------------------------------------
 				## get the predict result and then compute accuracy below
 				##------------------------------------------------------
 				# _, y_pred = torch.max(output_y.data, 1)
 				y_pred = torch.argmax(output_y.data, 1)
-				
+				accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
 				
 				##----------------------------------------------------------
 				## loss.item() or use tensorboard to monitor the loss blow
 				## if use loss.item(), you may use log txt files to save loss
 				##----------------------------------------------------------
+				writer.add_scalar('training loss', loss.item(), epoch)
+				with open("log.txt", "a") as f:
+    				# Write the loss and accuracy values to the file
+					f.write("Epoch {}: Loss = {:.4f}, Accuracy = {:.2f}%\n".format(epoch,loss.item(),accy*100))
+					f.close()
 				
-
 			## -------------------------------------------------------------------
 			## save checkpoint below (optional), every "epoch" save one checkpoint
 			## -------------------------------------------------------------------
-			
+			checkpoint = {'epoch':epoch, 'model_state_dict':model.state_dict(), 'optimizer_state_dict':optimizer.state_dict() }
+			torch.save(checkpoint, ckp_path)
 			
 				
 
@@ -181,19 +226,42 @@ def main():
 	##    model testing code below
 	##------------------------------------
 	model.eval()
+	with open("predictions.txt", "w") as f: #reset the predictions
+		# Write the loss and accuracy values to the file
+		f.truncate(0)
+		f.close()
 	with torch.no_grad():
+		total_accuracy = 0
+		num_batches = 0
 		for batch_id, (x_batch,y_labels) in enumerate(test_loader):
+			num_batches = num_batches + 1
 			x_batch, y_labels = Variable(x_batch).to(device), Variable(y_labels).to(device)
 			##---------------------------------------
 			## write the predict result below
 			##---------------------------------------
-			
-			
-
+			output_y = model(x_batch)
+			y_pred = torch.argmax(output_y.data, 1)
+			accy = _compute_accuracy(y_pred=y_pred, y_batch=y_labels)
+			total_accuracy = total_accuracy + accy
+			y_pred = y_pred.numpy()
+			y_labels = y_labels.numpy()
+			with open('predictions.txt', 'a') as file:
+				for i in range(len(y_pred)):
+					file.write(str(y_pred[i]) + '\t' + str(y_labels[i]) + '\n')
 			##--------------------------------------------------
 			## complete code for computing the accuracy below
 			##---------------------------------------------------
 			
+				
+				file.write("Accuracy for batch " + str(batch_id) + ": " + str(accy*100))
+				file.close()
+		final_eval = "Total Accuracy: " + str(total_accuracy * 100 / num_batches)
+		with open('predictions.txt', 'a') as file:
+			file.write('\n' + final_eval)
+			file.close()
+		print(final_eval)
+	writer.close() #close tensorboard
+
 	
 		
 
