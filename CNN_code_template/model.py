@@ -45,12 +45,14 @@ class CNNModel(nn.Module):
 		## write code to define fully connected layer below
 		##------------------------------------------------
 		
-		in_size = fc_hidden_3 * 12 * 12 #Not 100% sure this is correct
+		in_size = fc_hidden_3 * 12 * 12 
 		out_size = 10 #Because we're predicting 10 classes
-		self.fc = nn.Linear(in_size, fc_hidden_1)
-		self.bn1 = nn.BatchNorm1d(fc_hidden_1) # BatchNorm1d layer
-		self.fc2 = nn.Linear(fc_hidden_1,out_size)
-		self.bn2 = nn.BatchNorm1d(out_size)
+		self.fc = nn.Sequential(
+							nn.Linear(in_size, fc_hidden_1),
+							nn.BatchNorm1d(fc_hidden_1), # BatchNorm1d layer
+							nn.Linear(fc_hidden_1,out_size),
+							nn.BatchNorm1d(out_size) 
+							)
 
 	'''feed features to the model'''
 	def forward(self, x):  #default
